@@ -4,7 +4,7 @@ import pandas as pd
 
 def inspect():
     print("=" * 70)
-    print("  PS-02 ML PIPELINE — DATASET INSPECTION")
+    print("  PHAGEGUARD ML PIPELINE — DATASET INSPECTION")
     print("  Dataset: mamtakumar/seven-phishing-email-datasets")
     print("=" * 70)
 

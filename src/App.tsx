@@ -73,7 +73,7 @@ export function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center space-x-2">
             <ShieldAlert className="w-4 h-4 text-red-400" />
-            <span>PS-02 &bull; Phishing Attack Investigation & Correlation Platform &bull; Hackathon Prototype</span>
+            <span>PHAGEGUARD &bull; AI-Powered Phishing Investigation & SOC Response Platform</span>
           </div>
 
           <div className="flex items-center space-x-4">

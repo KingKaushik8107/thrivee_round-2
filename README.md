@@ -1,4 +1,5 @@
-# PS-02: Phishing Attack Investigation & Correlation Platform
+# PHAGEGUARD
+## AI-Powered Phishing Investigation & SOC Response Platform
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -7,7 +8,7 @@
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.9-F7931E.svg?logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
 [![Tests](https://img.shields.io/badge/Tests-30%20Passed-10B981.svg)]()
 
-A comprehensive, production-grade **AI-Assisted Phishing Attack Investigation & Campaign Correlation Platform** built for SOC (Security Operations Center) analysts and incident response teams.
+A comprehensive, production-grade **AI-Powered Phishing Investigation & SOC Response Platform** built for SOC (Security Operations Center) analysts and incident response teams.
 
 ---
 
@@ -19,7 +20,7 @@ When an employee receives a deceptive email:
 * **Subject**: `Your account will be suspended!`
 * **URL**: `http://paypa1-login.com/verify`
 
-Instead of returning an opaque "AI verdict", PS-02 performs multi-layer forensic dissection, extracting evidence across 6 distinct security domains, generating an explainable **92/100 Risk Score**, classifying the attack as **Credential Harvesting**, extracting all IOCs, mapping the **React Flow Kill-Chain**, and recommending automated SOC containment playbooks.
+Instead of returning an opaque "AI verdict", **PHAGEGUARD** performs multi-layer forensic dissection, extracting evidence across 6 distinct security domains, generating an explainable **92/100 Risk Score**, classifying the attack as **Credential Harvesting**, extracting all IOCs, mapping the **React Flow Kill-Chain**, and recommending automated SOC containment playbooks.
 
 ---
 
@@ -278,20 +279,20 @@ SQLite / PostgreSQL DB     ML Phishing Inference (scikit-learn)
 
 ## ⚡ Vercel Deployment
 
-The PS-02 Phishing Attack Investigation Platform is pre-configured for full-stack deployment on **Vercel** with a React 19 frontend and a Python Serverless FastAPI backend.
+The PHAGEGUARD Phishing Investigation & SOC Response Platform is pre-configured for full-stack deployment on **Vercel** with a React 19 frontend and a Python Serverless FastAPI backend.
 
 ### 1. Step-by-Step Deployment Instructions
 
 1. **Push your repository to GitHub**:
    ```bash
    git add .
-   git commit -m "Prepare PS-02 for Vercel deployment"
+   git commit -m "Deploy PHAGEGUARD to Vercel"
    git push origin main
    ```
 
 2. **Import into Vercel**:
    - Go to [Vercel Dashboard](https://vercel.com/dashboard) $\rightarrow$ Click **Add New Project** $\rightarrow$ **Import Git Repository**.
-   - Select your `KingKaushik8107/packet-journey` repository.
+   - Select your `KingKaushik8107/thrivee_round-2` repository.
 
 3. **Project Settings (Auto-Detected)**:
    - **Framework Preset**: `Vite`
@@ -348,9 +349,9 @@ curl -X POST https://<your-project>.vercel.app/api/analyze \
 
 ---
 
-## 👥 Hackathon Team & PS-02 Solution
+## 👥 Hackathon Team & PHAGEGUARD Solution
 
-* **Project**: PS-02 — Phishing Attack Investigation Platform
+* **Project**: PHAGEGUARD — AI-Powered Phishing Investigation & SOC Response Platform
 * **Architecture**: Modular Python FastAPI Backend + React 19 SOC Frontend + scikit-learn ML Pipeline + ReportLab PDF Engine + SQLite/PostgreSQL Database
 * **Status**: Complete Production-Ready Prototype & Verified Test Suite
 

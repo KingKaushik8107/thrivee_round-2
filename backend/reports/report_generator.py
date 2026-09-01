@@ -12,7 +12,7 @@ class ReportGenerator:
             "report_metadata": {
                 "report_id": f"REP-{incident_data.get('id', 'INCIDENT')[:8]}",
                 "generated_at": datetime.utcnow().isoformat(),
-                "generator": "PS-02 Phishing Investigation Platform v1.0",
+                "generator": "PHAGEGUARD — AI-Powered Phishing Investigation & SOC Response Platform v1.0",
                 "compliance_standard": "NIST SP 800-61 Rev. 2 / MITRE ATT&CK"
             },
             "incident": incident_data
@@ -95,7 +95,7 @@ class ReportGenerator:
     <div class="container">
         <div class="header">
             <div>
-                <div class="logo">🛡️ PS-02 CYBERSECURITY INCIDENT DOSSIER</div>
+                <div class="logo">🛡️ PHAGEGUARD — CYBERSECURITY INCIDENT DOSSIER</div>
                 <div style="color: #64748b; font-size: 13px; margin-top: 4px;">Incident ID: {inc_id} | Date: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}</div>
             </div>
             <div>
@@ -160,7 +160,7 @@ class ReportGenerator:
         </ul>
 
         <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; text-align: center;">
-            Generated automatically by PS-02 Phishing Attack Investigation Platform &bull; Confidential Incident Documentation &bull; For Authorized SOC Personnel Only
+            Generated automatically by PHAGEGUARD — AI-Powered Phishing Investigation & SOC Response Platform &bull; Confidential Incident Documentation &bull; For Authorized SOC Personnel Only
         </div>
     </div>
 </body>

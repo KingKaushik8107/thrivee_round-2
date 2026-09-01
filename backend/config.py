@@ -31,7 +31,7 @@ def _resolve_model_dir() -> str:
     return base_models
 
 class Settings(BaseModel):
-    PROJECT_NAME: str = "PS-02 Phishing Attack Investigation Platform"
+    PROJECT_NAME: str = "PHAGEGUARD — AI-Powered Phishing Investigation & SOC Response Platform"
     API_PREFIX: str = "/api"
     
     # Database: Supports SQLite (local or tempfile in serverless) or PostgreSQL via DATABASE_URL
