@@ -1,0 +1,283 @@
+{
+  "dataset_name": "mamtakumar/seven-phishing-email-datasets",
+  "dataset_source": "Hugging Face (mamtakumar/seven-phishing-email-datasets)",
+  "model_architecture": "TF-IDF (1-2 ngrams, sublinear) + Logistic Regression (L2 Balanced)",
+  "sample_counts": {
+    "raw_train_samples": 162413,
+    "raw_eval_samples": 20300,
+    "raw_test_samples": 20304,
+    "total_raw_samples": 203017,
+    "clean_train_count": 162017,
+    "clean_val_count": 20192,
+    "clean_test_count": 20198,
+    "total_clean_samples": 202407,
+    "phishing_count": 94186,
+    "benign_count": 108221,
+    "train_phishing": 75372,
+    "train_benign": 86645,
+    "val_phishing": 9409,
+    "val_benign": 10783,
+    "test_phishing": 9405,
+    "test_benign": 10793,
+    "selected_C": 2.0
+  },
+  "total_test_samples": 20198,
+  "metrics": {
+    "accuracy": 0.9842,
+    "precision": 0.9822,
+    "recall": 0.9838,
+    "f1_score": 0.983,
+    "roc_auc": 0.9988
+  },
+  "confusion_matrix": {
+    "true_negatives": 10625,
+    "false_positives": 168,
+    "false_negatives": 152,
+    "true_positives": 9253,
+    "matrix": [
+      [
+        10625,
+        168
+      ],
+      [
+        152,
+        9253
+      ]
+    ]
+  },
+  "classification_report": {
+    "0": {
+      "precision": 0.98589588939408,
+      "recall": 0.9844343556008524,
+      "f1-score": 0.9851645804357905,
+      "support": 10793.0
+    },
+    "1": {
+      "precision": 0.9821674981424477,
+      "recall": 0.9838383838383838,
+      "f1-score": 0.9830022309571869,
+      "support": 9405.0
+    },
+    "accuracy": 0.9841568472125953,
+    "macro avg": {
+      "precision": 0.9840316937682638,
+      "recall": 0.9841363697196182,
+      "f1-score": 0.9840834056964887,
+      "support": 20198.0
+    },
+    "weighted avg": {
+      "precision": 0.9841598006862078,
+      "recall": 0.9841568472125953,
+      "f1-score": 0.9841577036734245,
+      "support": 20198.0
+    }
+  },
+  "top_phishing_features": [
+    {
+      "feature": "body",
+      "weight": 8.5225
+    },
+    {
+      "feature": "subject",
+      "weight": 8.3024
+    },
+    {
+      "feature": "links 1",
+      "weight": 6.9728
+    },
+    {
+      "feature": "2005",
+      "weight": 6.7761
+    },
+    {
+      "feature": "click",
+      "weight": 6.6812
+    },
+    {
+      "feature": "1 0",
+      "weight": 6.6682
+    },
+    {
+      "feature": "com",
+      "weight": 6.3635
+    },
+    {
+      "feature": "life",
+      "weight": 6.1582
+    },
+    {
+      "feature": "2004",
+      "weight": 5.9952
+    },
+    {
+      "feature": "meds",
+      "weight": 5.9535
+    },
+    {
+      "feature": "pills",
+      "weight": 5.6843
+    },
+    {
+      "feature": "links",
+      "weight": 5.6335
+    },
+    {
+      "feature": "viagra",
+      "weight": 5.478
+    },
+    {
+      "feature": "site",
+      "weight": 5.3582
+    },
+    {
+      "feature": "marketing",
+      "weight": 5.1834
+    },
+    {
+      "feature": "cialis",
+      "weight": 4.9568
+    },
+    {
+      "feature": "offer",
+      "weight": 4.9131
+    },
+    {
+      "feature": "quality",
+      "weight": 4.7821
+    },
+    {
+      "feature": "com links",
+      "weight": 4.734
+    },
+    {
+      "feature": "custom alert",
+      "weight": 4.659
+    },
+    {
+      "feature": "amp",
+      "weight": 4.6086
+    },
+    {
+      "feature": "huge",
+      "weight": 4.6084
+    },
+    {
+      "feature": "men",
+      "weight": 4.5939
+    },
+    {
+      "feature": "loan",
+      "weight": 4.5604
+    },
+    {
+      "feature": "remove",
+      "weight": 4.5268
+    }
+  ],
+  "top_benign_features": [
+    {
+      "feature": "wrote",
+      "weight": -16.3753
+    },
+    {
+      "feature": "thanks",
+      "weight": -14.5568
+    },
+    {
+      "feature": "enron",
+      "weight": -12.4909
+    },
+    {
+      "feature": "713",
+      "weight": -8.556
+    },
+    {
+      "feature": "edu",
+      "weight": -7.5238
+    },
+    {
+      "feature": "university",
+      "weight": -6.8822
+    },
+    {
+      "feature": "fw",
+      "weight": -6.874
+    },
+    {
+      "feature": "perl",
+      "weight": -6.7335
+    },
+    {
+      "feature": "2008",
+      "weight": -6.4574
+    },
+    {
+      "feature": "vince",
+      "weight": -6.2318
+    },
+    {
+      "feature": "opensuse",
+      "weight": -6.2208
+    },
+    {
+      "feature": "list",
+      "weight": -6.162
+    },
+    {
+      "feature": "attached",
+      "weight": -6.0137
+    },
+    {
+      "feature": "handyboard",
+      "weight": -5.9681
+    },
+    {
+      "feature": "subject rant",
+      "weight": -5.9041
+    },
+    {
+      "feature": "dmdx",
+      "weight": -5.8535
+    },
+    {
+      "feature": "questions",
+      "weight": -5.8271
+    },
+    {
+      "feature": "2001",
+      "weight": -5.8038
+    },
+    {
+      "feature": "rant",
+      "weight": -5.742
+    },
+    {
+      "feature": "fork",
+      "weight": -5.6633
+    },
+    {
+      "feature": ".yahoo.com",
+      "weight": -5.639
+    },
+    {
+      "feature": "gas",
+      "weight": -5.6186
+    },
+    {
+      "feature": "body attached",
+      "weight": -5.5664
+    },
+    {
+      "feature": "michelle",
+      "weight": -5.4884
+    },
+    {
+      "feature": "jeff",
+      "weight": -5.353
+    }
+  ],
+  "class_labels": {
+    "0": "Benign / Legitimate",
+    "1": "Phishing / Malicious Spam"
+  }
+}

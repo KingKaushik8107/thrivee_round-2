@@ -1,0 +1,27 @@
+# Dockerfile for PS-02 Backend (FastAPI + ML Engine + ReportLab)
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system dependencies for build tools and font rendering
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source code and pre-trained models
+COPY backend/ ./backend/
+COPY models/ ./models/
+
+# Expose FastAPI port
+EXPOSE 8000
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+
+# Start FastAPI application
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
