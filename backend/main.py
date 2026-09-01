@@ -18,11 +18,11 @@ init_db()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: initialize database and seed demo data if empty
-    print("[+] Starting PHAGEGUARD Platform...")
+    print("[+] Starting PhishX Platform...")
     init_db()
     await seed_database()
     yield
-    print("[-] Shutting down PHAGEGUARD Platform.")
+    print("[-] Shutting down PhishX Platform.")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

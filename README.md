@@ -1,4 +1,4 @@
-# PHAGEGUARD
+# PhishX
 ## AI-Powered Phishing Investigation & SOC Response Platform
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
@@ -20,7 +20,7 @@ When an employee receives a deceptive email:
 * **Subject**: `Your account will be suspended!`
 * **URL**: `http://paypa1-login.com/verify`
 
-Instead of returning an opaque "AI verdict", **PHAGEGUARD** performs multi-layer forensic dissection, extracting evidence across 6 distinct security domains, generating an explainable **92/100 Risk Score**, classifying the attack as **Credential Harvesting**, extracting all IOCs, mapping the **React Flow Kill-Chain**, and recommending automated SOC containment playbooks.
+Instead of returning an opaque "AI verdict", **PhishX** performs multi-layer forensic dissection, extracting evidence across 6 distinct security domains, generating an explainable **92/100 Risk Score**, classifying the attack as **Credential Harvesting**, extracting all IOCs, mapping the **React Flow Kill-Chain**, and recommending automated SOC containment playbooks.
 
 ---
 
@@ -279,14 +279,14 @@ SQLite / PostgreSQL DB     ML Phishing Inference (scikit-learn)
 
 ## ⚡ Vercel Deployment
 
-The PHAGEGUARD Phishing Investigation & SOC Response Platform is pre-configured for full-stack deployment on **Vercel** with a React 19 frontend and a Python Serverless FastAPI backend.
+The PhishX Phishing Investigation & SOC Response Platform is pre-configured for full-stack deployment on **Vercel** with a React 19 frontend and a Python Serverless FastAPI backend.
 
 ### 1. Step-by-Step Deployment Instructions
 
 1. **Push your repository to GitHub**:
    ```bash
    git add .
-   git commit -m "Deploy PHAGEGUARD to Vercel"
+   git commit -m "Deploy PhishX to Vercel"
    git push origin main
    ```
 
@@ -349,9 +349,9 @@ curl -X POST https://<your-project>.vercel.app/api/analyze \
 
 ---
 
-## 👥 Hackathon Team & PHAGEGUARD Solution
+## 👥 Hackathon Team & PhishX Solution
 
-* **Project**: PHAGEGUARD — AI-Powered Phishing Investigation & SOC Response Platform
+* **Project**: PhishX — AI-Powered Phishing Investigation & SOC Response Platform
 * **Architecture**: Modular Python FastAPI Backend + React 19 SOC Frontend + scikit-learn ML Pipeline + ReportLab PDF Engine + SQLite/PostgreSQL Database
 * **Status**: Complete Production-Ready Prototype & Verified Test Suite
 

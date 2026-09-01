@@ -88,7 +88,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             <span className="text-xs text-slate-400 font-mono">SOC LEVEL 3 INVESTIGATION</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-1 font-sans">
-            PHAGEGUARD Investigation Center
+            PhishX Investigation Center
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 max-w-2xl mt-1">
             Real-time multi-stage security telemetry, brand lookalike detection, ML language probability, and campaign correlation.

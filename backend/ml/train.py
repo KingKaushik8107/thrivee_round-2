@@ -164,7 +164,7 @@ def train_pipeline(
         model_dir = settings.MODEL_DIR
 
     print("=" * 75)
-    print("  PHAGEGUARD PHISHING ML PIPELINE -- HUGGING FACE PRODUCTION TRAINING")
+    print("  PhishX PHISHING ML PIPELINE -- HUGGING FACE PRODUCTION TRAINING")
     print("=" * 75)
     t_start = time.time()
 
@@ -265,7 +265,7 @@ def train_pipeline(
     return model, metrics
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train PHAGEGUARD Phishing ML Model on Hugging Face Dataset")
+    parser = argparse.ArgumentParser(description="Train PhishX Phishing ML Model on Hugging Face Dataset")
     parser.add_argument("--hf", action="store_true", default=True, help="Train on Hugging Face dataset (default: True)")
     parser.add_argument("--max-samples", type=int, default=None, help="Optional max training samples limit (default: None, full dataset)")
     parser.add_argument("--model-dir", type=str, default=None, help="Directory to save model artifacts")

@@ -37,7 +37,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-lg text-white tracking-wider font-mono">PHAGEGUARD</span>
+                <span className="font-extrabold text-lg text-white tracking-wider font-mono">PhishX</span>
                 <span className="px-2 py-0.5 text-xs font-semibold uppercase bg-red-950/80 text-red-400 border border-red-800/60 rounded">
                   SOC DEFENSE
                 </span>
