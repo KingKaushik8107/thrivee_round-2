@@ -276,9 +276,82 @@ SQLite / PostgreSQL DB     ML Phishing Inference (scikit-learn)
 
 ---
 
+## ⚡ Vercel Deployment
+
+The PS-02 Phishing Attack Investigation Platform is pre-configured for full-stack deployment on **Vercel** with a React 19 frontend and a Python Serverless FastAPI backend.
+
+### 1. Step-by-Step Deployment Instructions
+
+1. **Push your repository to GitHub**:
+   ```bash
+   git add .
+   git commit -m "Prepare PS-02 for Vercel deployment"
+   git push origin main
+   ```
+
+2. **Import into Vercel**:
+   - Go to [Vercel Dashboard](https://vercel.com/dashboard) $\rightarrow$ Click **Add New Project** $\rightarrow$ **Import Git Repository**.
+   - Select your `KingKaushik8107/packet-journey` repository.
+
+3. **Project Settings (Auto-Detected)**:
+   - **Framework Preset**: `Vite`
+   - **Root Directory**: `./`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+   - **Install Command**: `npm install`
+
+4. **Configure Environment Variables (Optional / Recommended)**:
+   In Vercel **Project Settings $\rightarrow$ Environment Variables**, add:
+   * `DATABASE_URL` (Recommended): A hosted PostgreSQL connection string (e.g. from [Neon.tech](https://neon.tech) or [Supabase](https://supabase.com)) for persistent incident tracking:
+     ```
+     postgresql://user:password@ep-host.neon.tech/neondb?sslmode=require
+     ```
+   * `OPENAI_API_KEY` (Optional): For conversational AI Security Analyst.
+   * `VIRUSTOTAL_API_KEY` (Optional): For live VirusTotal threat lookups.
+   * `URLHAUS_API_KEY` (Optional): For live Abuse.ch URLhaus malware lookups.
+   * `ABUSEIPDB_API_KEY` (Optional): For live AbuseIPDB IP reputation checks.
+   *(Note: Leave `VITE_API_URL` empty so frontend uses relative `/api` on the same domain).*
+
+5. **Click Deploy**:
+   Vercel will build the frontend assets, bundle the Python Serverless Function (`api/index.py`), and deploy your application to `https://<your-project>.vercel.app`.
+
+---
+
+### 2. How the Serverless Architecture Operates
+
+* **Frontend SPA Routing**: Static assets are served via Vercel Global Edge CDN. Browser page refreshes on client-side routes (`/dashboard`, `/investigation`, `/campaigns`, `/history`, `/model`) rewrite cleanly to `/index.html` via [`vercel.json`](file:///d:/THRIVE/vercel.json).
+* **FastAPI Serverless Function**: All API requests (`/api/*`) route to [`api/index.py`](file:///d:/THRIVE/api/index.py), which exposes the FastAPI application as an ASGI serverless handler.
+* **Pre-Trained ML Model Loading**: Serverless functions load the bundled pre-trained scikit-learn model binaries ([`models/phishing_model.joblib`](file:///d:/THRIVE/models/phishing_model.joblib) and [`models/tfidf_vectorizer.joblib`](file:///d:/THRIVE/models/tfidf_vectorizer.joblib)) in memory (<5ms inference).
+* **Database Behavior on Serverless**:
+  - **With `DATABASE_URL` (PostgreSQL)**: Fully persistent cloud storage across all function invocations and devices.
+  - **Without `DATABASE_URL` (SQLite Fallback)**: Automatically operates in-memory/in `/tmp/phishing_platform.db` with auto-seeded demo scenarios per cold start.
+* **In-Memory File Uploads & PDF Generation**: `.eml` uploads and ReportLab PDF downloads operate 100% in memory (`io.BytesIO()`), avoiding serverless disk write restrictions.
+
+---
+
+### 3. Testing Your Deployed Vercel API
+
+Once deployed, verify your live Vercel URL using `curl` or browser:
+
+```bash
+# 1. Test Health Endpoint
+curl https://<your-project>.vercel.app/api/health
+
+# 2. Test OpenAPI Interactive Swagger Docs
+https://<your-project>.vercel.app/api/docs
+
+# 3. Test Live Phishing Analysis
+curl -X POST https://<your-project>.vercel.app/api/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"sender":"security@paypa1-login.com","subject":"Account Alert","body":"Verify: http://paypa1-login.com/verify"}'
+```
+
+---
+
 ## 👥 Hackathon Team & PS-02 Solution
 
 * **Project**: PS-02 — Phishing Attack Investigation Platform
 * **Architecture**: Modular Python FastAPI Backend + React 19 SOC Frontend + scikit-learn ML Pipeline + ReportLab PDF Engine + SQLite/PostgreSQL Database
 * **Status**: Complete Production-Ready Prototype & Verified Test Suite
+
 

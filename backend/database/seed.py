@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
 
 from backend.database.database import SessionLocal, init_db
@@ -27,14 +27,14 @@ async def seed_database():
             "display_name": scenario.get("display_name", ""),
             "receiver": f"victim_{idx+1}@enterprise.com",
             "subject": scenario["subject"],
-            "date": (datetime.utcnow() - timedelta(hours=(idx*3 + 1))).strftime("%a, %d %b %Y %H:%M:%S +0000"),
+            "date": (datetime.now(timezone.utc) - timedelta(hours=(idx*3 + 1))).strftime("%a, %d %b %Y %H:%M:%S +0000"),
             "message_id": f"<msg-{idx+100}-soc@domain.com>",
             "body": scenario["body"],
             "html": f"<p>{scenario['body']}</p>",
             "headers": {
                 "From": f"{scenario.get('display_name', '')} <{scenario['sender']}>",
                 "Subject": scenario["subject"],
-                "Date": datetime.utcnow().isoformat()
+                "Date": datetime.now(timezone.utc).isoformat()
             },
             "urls": scenario.get("urls", []),
             "links": [{"text": "Click Here", "url": u} for u in scenario.get("urls", [])],

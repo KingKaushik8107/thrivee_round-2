@@ -7,7 +7,7 @@ from backend.ml.preprocess import combine_email_fields
 
 _cached_model = None
 
-def get_or_load_model():
+def get_or_load_model() -> Optional[PhishingClassifier]:
     global _cached_model
     if _cached_model is not None:
         return _cached_model
@@ -23,15 +23,24 @@ def get_or_load_model():
         except Exception as e:
             print(f"[!] Error loading model from {model_dir}: {e}")
 
-    # If model is not found, train on-the-fly
-    try:
-        from backend.ml.train import train_pipeline
-        print("[+] Model artifacts missing. Auto-training baseline model...")
-        _cached_model, _ = train_pipeline(model_dir=model_dir, force_dataset_download=False)
-        return _cached_model
-    except Exception as e:
-        print(f"[!] Error auto-training model: {e}")
+    # In serverless cloud environments (Vercel / AWS Lambda), NEVER attempt offline dataset training
+    is_serverless = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME") or os.getenv("LAMBDA_TASK_ROOT"))
+    if is_serverless:
+        print(f"[!] Pre-trained model artifacts not found at {model_dir} in serverless runtime. Operating in resilient heuristic mode.")
         return None
+
+    # Local development optional fallback (only if explicitly enabled via environment)
+    if os.getenv("AUTO_TRAIN_IF_MISSING", "false").lower() in ("1", "true"):
+        try:
+            from backend.ml.train import train_pipeline
+            print("[+] Model artifacts missing. Auto-training baseline model for local development...")
+            _cached_model, _ = train_pipeline(model_dir=model_dir, force_dataset_download=False)
+            return _cached_model
+        except Exception as e:
+            print(f"[!] Error auto-training model: {e}")
+            return None
+
+    return None
 
 def predict_email(
     subject: str = "",

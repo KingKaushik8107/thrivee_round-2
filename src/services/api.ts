@@ -9,13 +9,30 @@ import type {
 } from '../types';
 
 const getApiBaseUrl = (): string => {
+  // 1. Explicit environment override
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-  if (typeof window !== 'undefined' && window.location.hostname) {
-    return `http://${window.location.hostname}:8000/api`;
+
+  if (typeof window !== 'undefined') {
+    const port = window.location.port;
+    const hostname = window.location.hostname;
+
+    // 2. Localhost & LAN development (Vite running on dev port 5173 or 3000 -> FastAPI on port 8000)
+    if (port === '5173' || port === '3000') {
+      return `http://${hostname}:8000/api`;
+    }
+
+    // 3. Vercel & Production web servers (served on standard port 80/443 without port in URL) -> Same-origin relative /api
+    if (!port || port === '80' || port === '443') {
+      return '/api';
+    }
+
+    // 4. Default fallback with hostname
+    return `http://${hostname}:8000/api`;
   }
-  return 'http://localhost:8000/api';
+
+  return '/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
