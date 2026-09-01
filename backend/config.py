@@ -3,6 +3,9 @@ import tempfile
 from pydantic import BaseModel
 from typing import List
 
+# Ensure tldextract cache writes to temp directory in serverless environments
+os.environ.setdefault("TLDEXTRACT_CACHE", os.path.join(tempfile.gettempdir(), "tldextract"))
+
 # Detect if executing inside a serverless cloud runtime (Vercel / AWS Lambda)
 IS_SERVERLESS = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME") or os.getenv("LAMBDA_TASK_ROOT"))
 
