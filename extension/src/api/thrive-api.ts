@@ -1,7 +1,7 @@
 import type { EmailAnalysisRequest, IncidentAnalysis, BackendHealthStatus } from '../types';
 import { API_BASE_URL } from '../config';
 
-// Configurable API base URL (supports local dev and production Vercel)
+// Configurable API base URL (defaults strictly to local development backend)
 export const DEFAULT_API_BASE = API_BASE_URL;
 
 export class ThriveApiClient {

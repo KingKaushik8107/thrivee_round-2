@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Automated Network Isolation & Security Policy Verification Suite
  * 
  * Programmatically validates:
@@ -23,7 +23,7 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 import { ThriveApiClient } from '../src/api/thrive-api.ts';
 import { LinkInspector } from '../src/content/gmail/link-inspector.ts';
 import { INTERNAL_GOOGLE_DOMAINS } from '../src/content/gmail/selectors.ts';
-import { API_BASE_URL } from '../src/config.ts';
+import { API_BASE_URL, SOC_BASE_URL } from '../src/config.ts';
 
 test('Isolation Test 1: Manifest contains zero invasive network interception permissions', () => {
   const manifestPath = path.join(ROOT_DIR, 'public', 'manifest.json');
@@ -54,15 +54,26 @@ test('Isolation Test 1: Manifest contains zero invasive network interception per
   }
 });
 
-test('Isolation Test 2: Host permissions strictly isolate Vercel API and exclude Google Meet', () => {
+test('Isolation Test 2: Host permissions strictly isolate localhost API and exclude Google Meet and Vercel', () => {
   const manifestPath = path.join(ROOT_DIR, 'public', 'manifest.json');
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   const hostPermissions = manifest.host_permissions || [];
 
-  // Verify production Vercel is allowed
+  // Verify local backend is allowed
   assert.ok(
-    hostPermissions.some((h) => h.includes('phisdetect-tau.vercel.app')),
-    'Host permissions must include production Vercel domain'
+    hostPermissions.some((h) => h.includes('localhost:8000')),
+    'Host permissions must include localhost:8000'
+  );
+  assert.ok(
+    hostPermissions.some((h) => h.includes('127.0.0.1:8000')),
+    'Host permissions must include 127.0.0.1:8000'
+  );
+
+  // Verify production Vercel is NOT in host_permissions
+  assert.equal(
+    hostPermissions.some((h) => h.includes('phisdetect-tau.vercel.app') || h.includes('vercel.app')),
+    false,
+    'Host permissions must NOT include Vercel domains'
   );
 
   // Verify meet.google.com is NOT in host_permissions
@@ -104,13 +115,17 @@ test('Isolation Test 3: Service worker contains zero FetchEvent listeners or pro
   );
 });
 
-test('Isolation Test 4: ThriveApiClient only targets PhishX API and never contacts meet.google.com', () => {
-  const client = new ThriveApiClient('https://phisdetect-tau.vercel.app/api');
-  assert.equal(client.getBaseUrl(), 'https://phisdetect-tau.vercel.app/api');
+test('Isolation Test 4: ThriveApiClient defaults to localhost API and never contacts meet.google.com or Vercel', () => {
+  const client = new ThriveApiClient();
+  assert.equal(client.getBaseUrl(), 'http://localhost:8000/api');
 
-  // Verify default API_BASE_URL resolves to a valid URL
-  assert.ok(API_BASE_URL.startsWith('https://') || API_BASE_URL.startsWith('http://'));
+  // Verify default API_BASE_URL and SOC_BASE_URL
+  assert.equal(API_BASE_URL, 'http://localhost:8000/api');
+  assert.equal(SOC_BASE_URL, 'http://localhost:5173');
+
   assert.equal(API_BASE_URL.includes('meet.google.com'), false);
+  assert.equal(API_BASE_URL.includes('vercel.app'), false);
+  assert.equal(SOC_BASE_URL.includes('vercel.app'), false);
 });
 
 test('Isolation Test 5: LinkInspector performs zero network calls and classifies meet.google.com as internal', () => {
@@ -145,4 +160,32 @@ test('Isolation Test 7: INTERNAL_GOOGLE_DOMAINS explicitly contains meet.google.
   assert.ok(INTERNAL_GOOGLE_DOMAINS.includes('mail.google.com'));
   assert.ok(INTERNAL_GOOGLE_DOMAINS.includes('accounts.google.com'));
   assert.ok(INTERNAL_GOOGLE_DOMAINS.includes('support.google.com'));
+});
+
+test('Isolation Test 8: Runtime configuration defaults strictly to local development environment', () => {
+  assert.equal(API_BASE_URL, 'http://localhost:8000/api');
+  assert.equal(SOC_BASE_URL, 'http://localhost:5173');
+});
+
+test('Isolation Test 9: Extension source files contain zero references to Vercel production endpoints', () => {
+  const srcDir = path.join(ROOT_DIR, 'src');
+  
+  function scanDir(dir) {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        scanDir(fullPath);
+      } else if (entry.isFile() && (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx') || entry.name.endsWith('.js'))) {
+        const content = fs.readFileSync(fullPath, 'utf8');
+        assert.equal(
+          content.includes('phisdetect-tau.vercel.app'),
+          false,
+          `Source file ${entry.name} must not contain Vercel production domain`
+        );
+      }
+    }
+  }
+
+  scanDir(srcDir);
 });

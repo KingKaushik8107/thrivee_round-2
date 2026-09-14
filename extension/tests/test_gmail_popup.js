@@ -213,11 +213,10 @@ test('Popup Test 11: Formats incident ID correctly (INC-XXXXXXXX)', () => {
   assert.equal(formatted, 'INC-C1D2E3F4');
 });
 
-test('Popup Test 12: SOC Investigation URL constructed using configured SOC_BASE_URL', () => {
+test('Popup Test 12: SOC Investigation URL constructed using configured SOC_BASE_URL (localhost:5173)', () => {
   const incidentId = 'c1d2e3f4-5a6b-7c8d-9e0f-1a2b3c4d5e6f';
   const url = `${SOC_BASE_URL}/incident/${incidentId}`;
-  assert.ok(url.includes(`/incident/${incidentId}`));
-  assert.ok(url.startsWith('https://') || url.startsWith('http://'));
+  assert.equal(url, `http://localhost:5173/incident/${incidentId}`);
 });
 
 test('Popup Test 13: Google Meet domain is recognized as internal Google domain', () => {

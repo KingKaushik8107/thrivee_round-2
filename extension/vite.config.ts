@@ -7,16 +7,12 @@ export default defineConfig(({ mode }) => {
   const apiUrl =
     process.env.VITE_THRIVE_API_URL ||
     env.VITE_THRIVE_API_URL ||
-    (mode === 'production'
-      ? 'https://phisdetect-tau.vercel.app/api'
-      : 'http://localhost:8000/api');
+    'http://localhost:8000/api';
 
   const socUrl =
     process.env.VITE_THRIVE_SOC_URL ||
     env.VITE_THRIVE_SOC_URL ||
-    (mode === 'production'
-      ? 'https://phisdetect-tau.vercel.app'
-      : 'http://localhost:5173');
+    'http://localhost:5173';
 
   return {
     base: './',
