@@ -13,4 +13,5 @@ import './test_gmail_extractor.js';
 import './test_gmail_ui.js';
 import './test_gmail_link_inspector.js';
 import './test_phase8_extension.js';
+import './test_gmail_popup.js';
 

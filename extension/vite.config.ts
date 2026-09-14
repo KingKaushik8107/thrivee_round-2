@@ -19,6 +19,7 @@ export default defineConfig(({ mode }) => {
       : 'http://localhost:5173');
 
   return {
+    base: './',
     plugins: [react()],
     root: resolve(__dirname),
     define: {

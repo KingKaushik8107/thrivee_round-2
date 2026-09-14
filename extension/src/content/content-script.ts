@@ -300,9 +300,37 @@ class GmailContentCoordinator {
   private initMessageListener() {
     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
       chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-        if (message && message.type === 'PING') {
-          sendResponse({ status: 'ready', phase: '7', currentAnalysis: this.currentAnalysis });
+        if (!message || typeof message !== 'object') return false;
+
+        if (message.type === 'PING') {
+          sendResponse({
+            status: 'ready',
+            phase: '8',
+            currentAnalysis: this.currentAnalysis,
+            currentEmailData: this.currentEmailData,
+            isEmailOpen: GmailDetector.isEmailOpen()
+          });
+          return false;
         }
+
+        if (message.type === 'GET_CONTENT_STATE' || message.type === 'GET_ACTIVE_EMAIL') {
+          const isEmailOpen = GmailDetector.isEmailOpen();
+          let emailData = this.currentEmailData;
+          if (isEmailOpen && !emailData) {
+            emailData = gmailExtractor.extract();
+            this.currentEmailData = emailData;
+          }
+          sendResponse({
+            success: true,
+            data: {
+              isEmailOpen,
+              emailData,
+              currentAnalysis: this.currentAnalysis
+            }
+          });
+          return false;
+        }
+
         return false;
       });
     }

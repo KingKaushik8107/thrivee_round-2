@@ -5,7 +5,8 @@ export type ExtensionMessageType =
   | 'GET_STATUS'
   | 'HEALTH_CHECK'
   | 'EMAIL_DETECTED'
-  | 'GET_ACTIVE_EMAIL';
+  | 'GET_ACTIVE_EMAIL'
+  | 'GET_CONTENT_STATE';
 
 export interface AnalyzeEmailMessage {
   type: 'ANALYZE_EMAIL';
@@ -29,12 +30,17 @@ export interface GetActiveEmailMessage {
   type: 'GET_ACTIVE_EMAIL';
 }
 
+export interface GetContentStateMessage {
+  type: 'GET_CONTENT_STATE';
+}
+
 export type ExtensionMessage =
   | AnalyzeEmailMessage
   | EmailDetectedMessage
   | GetStatusMessage
   | HealthCheckMessage
-  | GetActiveEmailMessage;
+  | GetActiveEmailMessage
+  | GetContentStateMessage;
 
 export interface ExtensionSuccessResponse<T> {
   success: true;
@@ -51,5 +57,12 @@ export type ExtensionResponse<T> =
   | ExtensionSuccessResponse<T>
   | ExtensionErrorResponse;
 
+export interface ContentStateData {
+  isEmailOpen: boolean;
+  emailData: EmailAnalysisRequest | null;
+  currentAnalysis: IncidentAnalysis | null;
+}
+
 export type AnalyzeEmailResponse = ExtensionResponse<IncidentAnalysis>;
 export type HealthCheckResponse = ExtensionResponse<BackendHealthStatus>;
+export type ContentStateResponse = ExtensionResponse<ContentStateData>;
