@@ -136,8 +136,16 @@ export const Popup: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    console.log('[PhishX Extension] PhishX popup initialized.');
     checkHealth();
     detectActiveContext();
+
+    // Fallback safety timer: ensure popup never stays in LOADING forever
+    const safetyTimer = setTimeout(() => {
+      setPopupState((current) => (current === 'LOADING' ? 'NO_GMAIL' : current));
+    }, 1200);
+
+    return () => clearTimeout(safetyTimer);
   }, [checkHealth, detectActiveContext]);
 
   const handleAnalyzeEmail = (emailToAnalyze?: EmailAnalysisRequest) => {

@@ -107,6 +107,13 @@ async function handleMessage(message: ExtensionMessage): Promise<ExtensionRespon
       };
     }
 
+    case 'PING': {
+      return {
+        success: true,
+        data: { status: 'ready', phase: '8' }
+      };
+    }
+
     default: {
       return {
         success: false,
