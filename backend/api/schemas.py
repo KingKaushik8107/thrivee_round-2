@@ -40,11 +40,83 @@ class RiskBreakdownDTO(BaseModel):
     weights: Dict[str, float]
     breakdown_details: Optional[Dict[str, Any]] = None
 
+class FeatureContributionDTO(BaseModel):
+    feature: str
+    weight: float
+    tfidf: float
+    contribution: float
+    direction: str
+
+class TokenHighlightDTO(BaseModel):
+    token: str
+    contribution: float
+    direction: str
+
+class XAIModelFeaturesDTO(BaseModel):
+    decision_score: float = 0.0
+    intercept: float = 0.0
+    total_feature_contribution: float = 0.0
+    reconstructed_decision_score: Optional[float] = 0.0
+    top_phishing_features: List[FeatureContributionDTO] = Field(default_factory=list)
+    top_legitimate_features: List[FeatureContributionDTO] = Field(default_factory=list)
+    is_mathematically_valid: bool = True
+    active_feature_count: Optional[int] = 0
+    token_highlights: Optional[List[TokenHighlightDTO]] = Field(default_factory=list)
+
+class XAIForensicEvidenceDTO(BaseModel):
+    source: str
+    category: str
+    title: str
+    severity: str
+    evidence: str
+    description: Optional[str] = None
+
+class XAIThreatIntelEvidenceDTO(BaseModel):
+    ioc_type: str
+    ioc_value: str
+    status: str
+    provider: Optional[str] = "threat_intel"
+    reputation_score: Optional[float] = None
+    details: Optional[Dict[str, Any]] = None
+
+class UnifiedXAIResponseDTO(BaseModel):
+    model_features: XAIModelFeaturesDTO = Field(default_factory=XAIModelFeaturesDTO)
+    forensic_evidence: List[XAIForensicEvidenceDTO] = Field(default_factory=list)
+    threat_intelligence_evidence: List[XAIThreatIntelEvidenceDTO] = Field(default_factory=list)
+    summary: str = ""
+    confidence_notes: List[str] = Field(default_factory=list)
+
+class AnalystNoteDTO(BaseModel):
+    id: str
+    analysis_id: str
+    analyst_name: str
+    note_text: str
+    created_at: str
+
+class IncidentTimelineEventDTO(BaseModel):
+    id: str
+    analysis_id: str
+    event_type: str
+    title: str
+    description: Optional[str] = None
+    actor: str
+    created_at: str
+
+class IncidentStatusUpdate(BaseModel):
+    status: str = Field(..., pattern=r"^(new|investigating|confirmed_threat|false_positive|resolved)$", description="Incident workflow status")
+    analyst_name: Optional[str] = Field(default="SOC Analyst", description="Analyst making the status change")
+    reason: Optional[str] = Field(default="", description="Reason for status change")
+
+class AnalystNoteCreate(BaseModel):
+    note_text: str = Field(..., min_length=1, max_length=5000, description="Analyst note body")
+    analyst_name: Optional[str] = Field(default="SOC Analyst", description="Author analyst name")
+
 class AnalysisResponse(BaseModel):
     incident_id: str
     verdict: str
     risk_score: float
     ml_probability: float
+    status: Optional[str] = "new"
     attack_type: str
     attack_type_confidence: float
     target_brand: Optional[str] = None
@@ -58,6 +130,10 @@ class AnalysisResponse(BaseModel):
     recommendations: List[Dict[str, Any]]
     campaign_id: Optional[str] = None
     created_at: str
+    xai: Optional[UnifiedXAIResponseDTO] = None
+    notes: Optional[List[AnalystNoteDTO]] = Field(default_factory=list)
+    timeline: Optional[List[IncidentTimelineEventDTO]] = Field(default_factory=list)
+
 
 class AnalystFeedbackRequest(BaseModel):
     feedback: str = Field(..., description="'confirmed_phishing' | 'false_positive' | 'needs_review'")

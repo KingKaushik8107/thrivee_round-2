@@ -6,15 +6,16 @@ import uuid
 
 from backend.database.database import get_db
 from backend.database.models import (
-    EmailRecord, AnalysisResult, IndicatorRecord, IOCRecord, RiskBreakdownRecord
+    EmailRecord, AnalysisResult, IndicatorRecord, IOCRecord, RiskBreakdownRecord,
+    IncidentTimelineEventRecord
 )
 from backend.parser.email_parser import EmailParser
 from backend.analyzers import (
     SenderAnalyzer, DomainAnalyzer, BrandAnalyzer, URLAnalyzer, ContentAnalyzer, AttachmentAnalyzer, AttackTypeClassifier
 )
 from backend.intelligence import IOCExtractor, VirusTotalProvider, URLhausProvider, AbuseIPDBProvider
-from backend.ml import predict_email
-from backend.risk import HybridRiskEngine, RiskExplanationEngine
+from backend.ml import predict_email, explain_email
+from backend.risk import HybridRiskEngine, RiskExplanationEngine, UnifiedXAIEngine
 from backend.response.recommendations import ResponseRecommendationEngine
 from backend.correlation.campaigns import CampaignManager
 from backend.api.schemas import AnalyzeEmailRequest, AnalysisResponse
@@ -111,14 +112,15 @@ async def run_pipeline(parsed_email: Dict[str, Any], db: Session) -> Dict[str, A
                     item["reputation_score"] = ti.get("reputation_score")
                     item["details"] = ti.get("details")
 
-    # 5. Machine Learning Prediction
-    ml_result = predict_email(
+    # 5. Machine Learning Prediction & Local Feature XAI
+    ml_result = explain_email(
         subject=parsed_email.get("subject", ""),
         body=parsed_email.get("body", ""),
         sender=parsed_email.get("sender", ""),
         urls=urls
     )
     ml_prob = ml_result.get("phishing_probability", 0.5)
+    ml_xai = ml_result.get("xai", {})
 
     # 6. Hybrid Risk Scoring
     risk_output = HybridRiskEngine.calculate_risk(
@@ -138,8 +140,21 @@ async def run_pipeline(parsed_email: Dict[str, Any], db: Session) -> Dict[str, A
         target_brand=brand_match.get("brand") if brand_match else "",
         attack_type=attack_info.get("attack_type", "generic_phishing"),
         indicators=all_indicators,
-        breakdown=breakdown
+        breakdown=breakdown,
+        ml_xai=ml_xai
     )
+
+    # 7.5. Unified XAI Engine Synthesis
+    unified_xai = UnifiedXAIEngine.build_explanation(
+        ml_xai=ml_xai,
+        forensic_indicators=all_indicators,
+        threat_intel_results=ti_results,
+        risk_score=risk_score,
+        attack_type=attack_info.get("attack_type", "generic_phishing"),
+        target_brand=brand_match.get("brand") if brand_match else "",
+        verdict=verdict
+    )
+
 
     # 8. SOC Response Playbook
     recommendations = ResponseRecommendationEngine.generate_recommendations(
@@ -175,6 +190,7 @@ async def run_pipeline(parsed_email: Dict[str, Any], db: Session) -> Dict[str, A
         verdict=verdict,
         risk_score=risk_score,
         ml_probability=ml_prob,
+        status="new",
         attack_type=attack_info.get("attack_type", "generic_phishing"),
         attack_type_confidence=attack_info.get("confidence", 0.8),
         target_brand=brand_match.get("brand") if brand_match else None,
@@ -185,6 +201,59 @@ async def run_pipeline(parsed_email: Dict[str, Any], db: Session) -> Dict[str, A
     )
     db.add(analysis_rec)
     db.flush()
+
+    # Record initial investigation timeline events
+    now_utc = datetime.now(timezone.utc)
+    timeline_events_data = [
+        {
+            "event_type": "created",
+            "title": "Email Ingested & Incident Registered",
+            "description": f"Incident created for email from '{parsed_email.get('sender', 'unknown')}' with subject '{parsed_email.get('subject', '(No Subject)')}'.",
+            "actor": "System"
+        },
+        {
+            "event_type": "ml_inference",
+            "title": "ML Model & Local XAI Explainer Executed",
+            "description": f"TF-IDF Logistic Regression evaluated phishing probability at {ml_prob * 100:.1f}%. Local feature attribution computed.",
+            "actor": "ML Classifier"
+        },
+        {
+            "event_type": "forensic_rules",
+            "title": f"Forensic Security Analyzers Completed ({len(all_indicators)} Indicators)",
+            "description": f"Evaluated sender, domain, brand, URL, content, and attachment rules. Calculated risk score: {risk_score:.1f}/100 ({verdict}).",
+            "actor": "Forensic Engine"
+        }
+    ]
+
+    if ti_results:
+        timeline_events_data.append({
+            "event_type": "threat_intel",
+            "title": f"Threat Intelligence Lookups Performed ({len(ti_results)} IOCs)",
+            "description": "Queried VirusTotal, URLhaus, and AbuseIPDB for reputation scores and threat signatures.",
+            "actor": "Threat Intel Engine"
+        })
+
+    saved_timeline = []
+    for evt in timeline_events_data:
+        t_rec = IncidentTimelineEventRecord(
+            analysis_id=analysis_rec.id,
+            event_type=evt["event_type"],
+            title=evt["title"],
+            description=evt["description"],
+            actor=evt["actor"],
+            created_at=now_utc
+        )
+        db.add(t_rec)
+        db.flush()
+        saved_timeline.append({
+            "id": t_rec.id,
+            "analysis_id": t_rec.analysis_id,
+            "event_type": t_rec.event_type,
+            "title": t_rec.title,
+            "description": t_rec.description,
+            "actor": t_rec.actor,
+            "created_at": t_rec.created_at.isoformat()
+        })
 
     # Save indicators
     for ind in all_indicators:
@@ -236,6 +305,7 @@ async def run_pipeline(parsed_email: Dict[str, Any], db: Session) -> Dict[str, A
         "verdict": verdict,
         "risk_score": risk_score,
         "ml_probability": ml_prob,
+        "status": "new",
         "attack_type": attack_info.get("attack_type", "generic_phishing"),
         "attack_type_confidence": attack_info.get("confidence", 0.8),
         "target_brand": brand_match.get("brand") if brand_match else None,
@@ -260,8 +330,12 @@ async def run_pipeline(parsed_email: Dict[str, Any], db: Session) -> Dict[str, A
         "breakdown": breakdown,
         "recommendations": recommendations,
         "campaign_id": camp.id if camp else None,
-        "created_at": email_rec.created_at.isoformat()
+        "created_at": email_rec.created_at.isoformat(),
+        "xai": unified_xai,
+        "notes": [],
+        "timeline": saved_timeline
     }
+
 
 @router.post("", response_model=Dict[str, Any])
 async def analyze_email(payload: AnalyzeEmailRequest, db: Session = Depends(get_db)):

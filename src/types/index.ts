@@ -81,12 +81,85 @@ export interface AnalystFeedback {
   created_at: string;
 }
 
+export interface FeatureContribution {
+  feature: string;
+  weight: number;
+  tfidf: number;
+  contribution: number;
+  direction: 'phishing' | 'legitimate' | 'neutral';
+}
+
+export interface TokenHighlight {
+  token: string;
+  contribution: number;
+  direction: 'phishing' | 'legitimate' | 'neutral';
+}
+
+export interface XAIModelFeatures {
+  decision_score: number;
+  intercept: number;
+  total_feature_contribution: number;
+  reconstructed_decision_score?: number;
+  top_phishing_features: FeatureContribution[];
+  top_legitimate_features: FeatureContribution[];
+  is_mathematically_valid: boolean;
+  active_feature_count?: number;
+  token_highlights?: TokenHighlight[];
+}
+
+export interface XAIForensicEvidence {
+  source: string;
+  category: string;
+  title: string;
+  severity: Severity | string;
+  evidence: string;
+  description?: string;
+}
+
+export interface XAIThreatIntelEvidence {
+  ioc_type: string;
+  ioc_value: string;
+  status: string;
+  provider?: string;
+  reputation_score?: number | null;
+  details?: Record<string, any>;
+}
+
+export interface UnifiedXAIResponse {
+  model_features: XAIModelFeatures;
+  forensic_evidence: XAIForensicEvidence[];
+  threat_intelligence_evidence: XAIThreatIntelEvidence[];
+  summary: string;
+  confidence_notes: string[];
+}
+
+export type IncidentStatus = 'new' | 'investigating' | 'confirmed_threat' | 'false_positive' | 'resolved';
+
+export interface AnalystNote {
+  id: string;
+  analysis_id: string;
+  analyst_name: string;
+  note_text: string;
+  created_at: string;
+}
+
+export interface TimelineEvent {
+  id: string;
+  analysis_id: string;
+  event_type: string;
+  title: string;
+  description?: string | null;
+  actor: string;
+  created_at: string;
+}
+
 export interface IncidentAnalysis {
   id?: string;
   incident_id: string;
   verdict: Verdict;
   risk_score: number;
   ml_probability: number;
+  status?: IncidentStatus;
   attack_type: string;
   attack_type_confidence: number;
   target_brand?: string | null;
@@ -101,7 +174,11 @@ export interface IncidentAnalysis {
   campaign_id?: string | null;
   feedbacks?: AnalystFeedback[];
   created_at: string;
+  xai?: UnifiedXAIResponse;
+  notes?: AnalystNote[];
+  timeline?: TimelineEvent[];
 }
+
 
 export interface DemoScenario {
   id: string;

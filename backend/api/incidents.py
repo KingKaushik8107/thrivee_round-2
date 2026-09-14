@@ -2,19 +2,67 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.responses import HTMLResponse, Response
 from sqlalchemy.orm import Session
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from backend.database.database import get_db
 from backend.database.models import (
     EmailRecord, AnalysisResult, IndicatorRecord, IOCRecord, RiskBreakdownRecord,
-    AnalystFeedbackRecord, CampaignMember
+    AnalystFeedbackRecord, CampaignMember, AnalystNoteRecord, IncidentTimelineEventRecord
 )
 from backend.intelligence.ioc_extractor import IOCExtractor
+from backend.ml import explain_email
 from backend.reports import ReportGenerator, PDFReportGenerator
 from backend.response.recommendations import ResponseRecommendationEngine
-from backend.api.schemas import AnalystFeedbackRequest
+from backend.risk import UnifiedXAIEngine
+from backend.api.schemas import (
+    AnalystFeedbackRequest, IncidentStatusUpdate, AnalystNoteCreate,
+    AnalystNoteDTO, IncidentTimelineEventDTO
+)
+
 
 router = APIRouter(prefix="/incidents", tags=["Incidents & Investigation"])
+
+def resolve_incident(incident_id: str, db: Session) -> Optional[EmailRecord]:
+    """
+    Resolves an EmailRecord (incident) using canonical identifiers:
+    1. Direct EmailRecord.id (exact match)
+    2. Stripped 'INC-' prefix (e.g. 'INC-b239aa65-...' or 'INC-B239AA65')
+    3. Direct AnalysisResult.id (exact match)
+    4. Short prefix match on EmailRecord.id (>= 6 chars)
+    """
+    if not incident_id:
+        return None
+
+    clean_id = incident_id.strip()
+
+    # 1. Exact match on EmailRecord.id
+    rec = db.query(EmailRecord).filter(EmailRecord.id == clean_id).first()
+    if rec:
+        return rec
+
+    # 2. Check if clean_id starts with 'INC-'
+    if clean_id.upper().startswith("INC-"):
+        stripped = clean_id[4:].strip()
+        rec = db.query(EmailRecord).filter(EmailRecord.id == stripped).first()
+        if rec:
+            return rec
+        if len(stripped) >= 6:
+            rec = db.query(EmailRecord).filter(EmailRecord.id.ilike(f"{stripped}%")).first()
+            if rec:
+                return rec
+
+    # 3. Exact match on AnalysisResult.id
+    analysis_rec = db.query(AnalysisResult).filter(AnalysisResult.id == clean_id).first()
+    if analysis_rec and analysis_rec.email:
+        return analysis_rec.email
+
+    # 4. Short prefix match on EmailRecord.id
+    if len(clean_id) >= 6:
+        rec = db.query(EmailRecord).filter(EmailRecord.id.ilike(f"{clean_id}%")).first()
+        if rec:
+            return rec
+
+    return None
 
 def format_incident_dict(email_rec: EmailRecord, db: Session) -> Dict[str, Any]:
     analysis = email_rec.analysis
@@ -80,12 +128,65 @@ def format_incident_dict(email_rec: EmailRecord, db: Session) -> Dict[str, Any]:
         for f in email_rec.feedbacks
     ]
 
+    notes = [
+        {
+            "id": n.id,
+            "analysis_id": n.analysis_id,
+            "analyst_name": n.analyst_name,
+            "note_text": n.note_text,
+            "created_at": n.created_at.isoformat()
+        }
+        for n in getattr(analysis, "analyst_notes", [])
+    ]
+    notes.sort(key=lambda x: x["created_at"], reverse=True)
+
+    timeline = [
+        {
+            "id": t.id,
+            "analysis_id": t.analysis_id,
+            "event_type": t.event_type,
+            "title": t.title,
+            "description": t.description,
+            "actor": t.actor,
+            "created_at": t.created_at.isoformat()
+        }
+        for t in getattr(analysis, "timeline_events", [])
+    ]
+    timeline.sort(key=lambda x: x["created_at"])
+
+    # Synthesize unified XAI on the fly for incident review
+    xai_res = explain_email(
+        subject=email_rec.subject or "",
+        body=email_rec.body_text or "",
+        sender=email_rec.sender or "",
+        urls=email_rec.urls or []
+    )
+    unified_xai = UnifiedXAIEngine.build_explanation(
+        ml_xai=xai_res.get("xai"),
+        forensic_indicators=indicators,
+        threat_intel_results=[
+            {
+                "ioc_type": ioc.ioc_type,
+                "ioc_value": ioc.value,
+                "status": ioc.threat_intel_status,
+                "reputation_score": ioc.reputation_score,
+                "details": ioc.details
+            }
+            for ioc in analysis.iocs
+        ],
+        risk_score=analysis.risk_score,
+        attack_type=analysis.attack_type,
+        target_brand=analysis.target_brand,
+        verdict=analysis.verdict
+    )
+
     return {
         "id": email_rec.id,
         "incident_id": email_rec.id,
         "verdict": analysis.verdict,
         "risk_score": analysis.risk_score,
         "ml_probability": analysis.ml_probability,
+        "status": getattr(analysis, "status", "new") or "new",
         "attack_type": analysis.attack_type,
         "attack_type_confidence": analysis.attack_type_confidence,
         "target_brand": analysis.target_brand,
@@ -111,14 +212,19 @@ def format_incident_dict(email_rec: EmailRecord, db: Session) -> Dict[str, Any]:
         "recommendations": recommendations,
         "campaign_id": camp_member.campaign_id if camp_member else None,
         "feedbacks": feedbacks,
-        "created_at": email_rec.created_at.isoformat()
+        "created_at": email_rec.created_at.isoformat(),
+        "xai": unified_xai,
+        "notes": notes,
+        "timeline": timeline
     }
+
 
 @router.get("")
 def list_incidents(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     verdict: Optional[str] = None,
+    status: Optional[str] = None,
     search: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
@@ -129,6 +235,8 @@ def list_incidents(
 
     if verdict:
         query = query.filter(AnalysisResult.verdict == verdict)
+    if status:
+        query = query.filter(AnalysisResult.status == status)
     if search:
         s = f"%{search}%"
         query = query.filter((EmailRecord.subject.ilike(s)) | (EmailRecord.sender.ilike(s)))
@@ -146,6 +254,7 @@ def list_incidents(
             "verdict": analysis.verdict if analysis else "unknown",
             "risk_score": analysis.risk_score if analysis else 0.0,
             "ml_probability": analysis.ml_probability if analysis else 0.0,
+            "status": analysis.status if analysis and analysis.status else "new",
             "attack_type": analysis.attack_type if analysis else "generic_phishing",
             "target_brand": analysis.target_brand if analysis else None,
             "created_at": r.created_at.isoformat()
@@ -158,11 +267,185 @@ def get_incident(incident_id: str, db: Session = Depends(get_db)):
     """
     Retrieves full forensic details for a specific email investigation incident.
     """
-    email_rec = db.query(EmailRecord).filter(EmailRecord.id == incident_id).first()
+    email_rec = resolve_incident(incident_id, db)
     if not email_rec:
         raise HTTPException(status_code=404, detail="Incident not found.")
 
     return format_incident_dict(email_rec, db)
+
+@router.patch("/{incident_id}/status")
+def update_incident_status(
+    incident_id: str,
+    payload: IncidentStatusUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Updates the incident workflow status (new, investigating, confirmed_threat, false_positive, resolved).
+    """
+    email_rec = resolve_incident(incident_id, db)
+    if not email_rec or not email_rec.analysis:
+        raise HTTPException(status_code=404, detail="Incident not found.")
+
+    old_status = email_rec.analysis.status or "new"
+    email_rec.analysis.status = payload.status
+
+    # Record timeline audit event
+    timeline_rec = IncidentTimelineEventRecord(
+        analysis_id=email_rec.analysis.id,
+        event_type="status_change",
+        title=f"Status Updated: {payload.status.upper().replace('_', ' ')}",
+        description=payload.reason if payload.reason else f"Status changed from '{old_status}' to '{payload.status}' by {payload.analyst_name}.",
+        actor=payload.analyst_name or "SOC Analyst",
+        created_at=datetime.now(timezone.utc)
+    )
+    db.add(timeline_rec)
+    db.commit()
+
+    return {
+        "status": "success",
+        "incident_id": email_rec.id,
+        "old_status": old_status,
+        "new_status": payload.status,
+        "message": f"Incident status updated to '{payload.status}' successfully."
+    }
+
+@router.get("/{incident_id}/notes", response_model=List[AnalystNoteDTO])
+def get_incident_notes(incident_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieves all investigation notes recorded for an incident.
+    """
+    email_rec = resolve_incident(incident_id, db)
+    if not email_rec or not email_rec.analysis:
+        raise HTTPException(status_code=404, detail="Incident not found.")
+
+    notes = (
+        db.query(AnalystNoteRecord)
+        .filter(AnalystNoteRecord.analysis_id == email_rec.analysis.id)
+        .order_by(AnalystNoteRecord.created_at.desc())
+        .all()
+    )
+    return [
+        AnalystNoteDTO(
+            id=n.id,
+            analysis_id=n.analysis_id,
+            analyst_name=n.analyst_name,
+            note_text=n.note_text,
+            created_at=n.created_at.isoformat()
+        )
+        for n in notes
+    ]
+
+@router.post("/{incident_id}/notes", response_model=AnalystNoteDTO, status_code=201)
+def add_incident_note(
+    incident_id: str,
+    payload: AnalystNoteCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Appends a new analyst investigation note and audit log entry.
+    """
+    email_rec = resolve_incident(incident_id, db)
+    if not email_rec or not email_rec.analysis:
+        raise HTTPException(status_code=404, detail="Incident not found.")
+
+    note_rec = AnalystNoteRecord(
+        analysis_id=email_rec.analysis.id,
+        analyst_name=payload.analyst_name or "SOC Analyst",
+        note_text=payload.note_text.strip(),
+        created_at=datetime.now(timezone.utc)
+    )
+    db.add(note_rec)
+    db.flush()
+
+    # Add timeline event
+    desc_preview = payload.note_text.strip()
+    if len(desc_preview) > 140:
+        desc_preview = desc_preview[:137] + "..."
+    timeline_rec = IncidentTimelineEventRecord(
+        analysis_id=email_rec.analysis.id,
+        event_type="analyst_note",
+        title=f"Analyst Note Added by {payload.analyst_name}",
+        description=desc_preview,
+        actor=payload.analyst_name or "SOC Analyst",
+        created_at=datetime.now(timezone.utc)
+    )
+    db.add(timeline_rec)
+    db.commit()
+
+    return AnalystNoteDTO(
+        id=note_rec.id,
+        analysis_id=note_rec.analysis_id,
+        analyst_name=note_rec.analyst_name,
+        note_text=note_rec.note_text,
+        created_at=note_rec.created_at.isoformat()
+    )
+
+@router.delete("/{incident_id}/notes/{note_id}")
+def delete_incident_note(
+    incident_id: str,
+    note_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Securely deletes a specific analyst investigation note.
+    """
+    email_rec = resolve_incident(incident_id, db)
+    if not email_rec or not email_rec.analysis:
+        raise HTTPException(status_code=404, detail="Incident not found.")
+
+    note_rec = (
+        db.query(AnalystNoteRecord)
+        .filter(
+            AnalystNoteRecord.id == note_id,
+            AnalystNoteRecord.analysis_id == email_rec.analysis.id
+        )
+        .first()
+    )
+
+    if not note_rec:
+        # Check if note exists under a different incident to provide explicit security feedback
+        other_note = db.query(AnalystNoteRecord).filter(AnalystNoteRecord.id == note_id).first()
+        if other_note:
+            raise HTTPException(status_code=400, detail="Note does not belong to the specified incident.")
+        raise HTTPException(status_code=404, detail="Analyst note not found.")
+
+    db.delete(note_rec)
+    db.commit()
+
+    return {
+        "status": "success",
+        "message": f"Analyst note '{note_id}' successfully removed.",
+        "incident_id": email_rec.id,
+        "note_id": note_id
+    }
+
+@router.get("/{incident_id}/timeline", response_model=List[IncidentTimelineEventDTO])
+def get_incident_timeline(incident_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieves chronological investigation timeline events for an incident.
+    """
+    email_rec = resolve_incident(incident_id, db)
+    if not email_rec or not email_rec.analysis:
+        raise HTTPException(status_code=404, detail="Incident not found.")
+
+    events = (
+        db.query(IncidentTimelineEventRecord)
+        .filter(IncidentTimelineEventRecord.analysis_id == email_rec.analysis.id)
+        .order_by(IncidentTimelineEventRecord.created_at.asc())
+        .all()
+    )
+    return [
+        IncidentTimelineEventDTO(
+            id=e.id,
+            analysis_id=e.analysis_id,
+            event_type=e.event_type,
+            title=e.title,
+            description=e.description,
+            actor=e.actor,
+            created_at=e.created_at.isoformat()
+        )
+        for e in events
+    ]
 
 @router.get("/{incident_id}/iocs")
 def get_incident_iocs(
@@ -173,7 +456,7 @@ def get_incident_iocs(
     """
     Exports IOCs for an incident in JSON or CSV format.
     """
-    email_rec = db.query(EmailRecord).filter(EmailRecord.id == incident_id).first()
+    email_rec = resolve_incident(incident_id, db)
     if not email_rec or not email_rec.analysis:
         raise HTTPException(status_code=404, detail="Incident or IOCs not found.")
 
@@ -191,7 +474,7 @@ def get_incident_iocs(
         return Response(
             content=csv_data,
             media_type="text/csv",
-            headers={"Content-Disposition": f"attachment; filename=iocs_{incident_id[:8]}.csv"}
+            headers={"Content-Disposition": f"attachment; filename=iocs_{email_rec.id[:8]}.csv"}
         )
 
     return iocs_dict
@@ -205,7 +488,7 @@ def get_incident_report(
     """
     Generates and returns an incident report in HTML, PDF, or JSON format.
     """
-    email_rec = db.query(EmailRecord).filter(EmailRecord.id == incident_id).first()
+    email_rec = resolve_incident(incident_id, db)
     if not email_rec:
         raise HTTPException(status_code=404, detail="Incident not found.")
 
@@ -224,7 +507,7 @@ def get_incident_report(
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename=incident_report_{incident_id[:8]}.pdf"}
+            headers={"Content-Disposition": f"attachment; filename=incident_report_{email_rec.id[:8]}.pdf"}
         )
 
 @router.post("/{incident_id}/feedback")
@@ -236,18 +519,32 @@ def submit_analyst_feedback(
     """
     Records human SOC analyst validation feedback (Confirmed Phishing, False Positive, Needs Review).
     """
-    email_rec = db.query(EmailRecord).filter(EmailRecord.id == incident_id).first()
+    email_rec = resolve_incident(incident_id, db)
     if not email_rec:
         raise HTTPException(status_code=404, detail="Incident not found.")
 
     feedback_rec = AnalystFeedbackRecord(
-        email_id=incident_id,
+        email_id=email_rec.id,
         feedback=payload.feedback,
         analyst_name=payload.analyst_name or "SOC Analyst",
         notes=payload.notes or "",
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc)
     )
     db.add(feedback_rec)
+
+    # Add timeline event for analyst feedback
+    if email_rec.analysis:
+        fb_label = payload.feedback.replace("_", " ").title()
+        timeline_rec = IncidentTimelineEventRecord(
+            analysis_id=email_rec.analysis.id,
+            event_type="feedback",
+            title=f"Analyst Decision: {fb_label}",
+            description=f"Analyst feedback '{payload.feedback}' recorded. Notes: {payload.notes or 'None'}",
+            actor=payload.analyst_name or "SOC Analyst",
+            created_at=datetime.now(timezone.utc)
+        )
+        db.add(timeline_rec)
+
     db.commit()
 
     return {
@@ -255,3 +552,5 @@ def submit_analyst_feedback(
         "message": f"Analyst feedback '{payload.feedback}' recorded successfully.",
         "feedback_id": feedback_rec.id
     }
+
+

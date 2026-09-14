@@ -11,6 +11,9 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
+    watch: {
+      ignored: ['**/extension/dist/**', '**/dist/**', '**/*.md', '**/walkthrough*.md']
+    }
   },
   preview: {
     host: '0.0.0.0',

@@ -127,7 +127,53 @@ class PDFReportGenerator:
         elements.append(Paragraph(summary_text, body_style))
         elements.append(Spacer(1, 10))
 
+        # 3.5. XAI Feature Attribution Table
+        xai_info = incident.get("xai", {})
+        model_feats = xai_info.get("model_features", {}) if isinstance(xai_info, dict) else {}
+        top_phish = model_feats.get("top_phishing_features", [])[:4]
+        top_legit = model_feats.get("top_legitimate_features", [])[:4]
+        d_score = model_feats.get("decision_score", 0.0)
+        intercept = model_feats.get("intercept", 0.0)
+
+        if top_phish or top_legit or d_score != 0.0:
+            elements.append(Paragraph(f"Explainable AI (XAI) Model Evidence &bull; Decision Score: {d_score:+.4f} (Base: {intercept:+.4f})", h2_style))
+            xai_table_data = [[
+                Paragraph("<b>Token Feature</b>", body_style),
+                Paragraph("<b>Direction</b>", body_style),
+                Paragraph("<b>Weight (w)</b>", body_style),
+                Paragraph("<b>TF-IDF (x)</b>", body_style),
+                Paragraph("<b>Contribution (w&times;x)</b>", body_style)
+            ]]
+            for f in top_phish:
+                xai_table_data.append([
+                    Paragraph(f"<b>{f.get('feature', '')}</b>", code_style),
+                    Paragraph("<font color='#b91c1c'>PHISHING</font>", body_style),
+                    Paragraph(f"{f.get('weight', 0.0):+.4f}", body_style),
+                    Paragraph(f"{f.get('tfidf', 0.0):.4f}", body_style),
+                    Paragraph(f"<b><font color='#b91c1c'>{f.get('contribution', 0.0):+.4f}</font></b>", body_style)
+                ])
+            for f in top_legit:
+                xai_table_data.append([
+                    Paragraph(f"<b>{f.get('feature', '')}</b>", code_style),
+                    Paragraph("<font color='#15803d'>LEGITIMATE</font>", body_style),
+                    Paragraph(f"{f.get('weight', 0.0):+.4f}", body_style),
+                    Paragraph(f"{f.get('tfidf', 0.0):.4f}", body_style),
+                    Paragraph(f"<b><font color='#15803d'>{f.get('contribution', 0.0):+.4f}</font></b>", body_style)
+                ])
+
+            xai_table = Table(xai_table_data, colWidths=[150, 80, 100, 100, 110])
+            xai_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#e2e8f0")),
+                ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+                ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+                ('TOPPADDING', (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ]))
+            elements.append(xai_table)
+            elements.append(Spacer(1, 10))
+
         # 4. Email Headers Table
+
         elements.append(Paragraph("Email Message Profile", h2_style))
         email_data = [
             [Paragraph("<b>From:</b>", body_style), Paragraph(email_info.get("sender", "N/A"), code_style)],

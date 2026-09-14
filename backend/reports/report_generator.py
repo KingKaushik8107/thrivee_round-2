@@ -67,9 +67,67 @@ class ReportGenerator:
             rec_items.append(f"<li><strong>{r.get('title')}:</strong> {r.get('action')}</li>")
         rec_html = "".join(rec_items) if rec_items else "<li>Follow standard mailbox monitoring procedures.</li>"
 
+        # Build XAI Evidence Section
+        xai_info = incident.get("xai", {})
+        model_feats = xai_info.get("model_features", {}) if isinstance(xai_info, dict) else {}
+        top_phish = model_feats.get("top_phishing_features", [])[:6]
+        top_legit = model_feats.get("top_legitimate_features", [])[:6]
+        d_score = model_feats.get("decision_score", 0.0)
+        intercept = model_feats.get("intercept", 0.0)
+        is_valid = model_feats.get("is_mathematically_valid", True)
+
+        xai_html = ""
+        if top_phish or top_legit or d_score != 0.0:
+            feat_rows = []
+            for f in top_phish:
+                feat_rows.append(f"""
+                <tr>
+                    <td><span style="color:#dc2626; font-weight:bold;">[+] {f.get('feature', '')}</span></td>
+                    <td>{f.get('weight', 0.0):+.4f}</td>
+                    <td>{f.get('tfidf', 0.0):.4f}</td>
+                    <td><strong style="color:#dc2626;">{f.get('contribution', 0.0):+.4f}</strong></td>
+                </tr>
+                """)
+            for f in top_legit:
+                feat_rows.append(f"""
+                <tr>
+                    <td><span style="color:#16a34a; font-weight:bold;">[-] {f.get('feature', '')}</span></td>
+                    <td>{f.get('weight', 0.0):+.4f}</td>
+                    <td>{f.get('tfidf', 0.0):.4f}</td>
+                    <td><strong style="color:#16a34a;">{f.get('contribution', 0.0):+.4f}</strong></td>
+                </tr>
+                """)
+            feat_table_body = "".join(feat_rows) if feat_rows else "<tr><td colspan='4'>No active vocabulary tokens identified.</td></tr>"
+
+            math_badge = "<span style='color:#16a34a; font-weight:bold;'>&#10003; MATHEMATICALLY VERIFIED</span>" if is_valid else "<span style='color:#dc2626; font-weight:bold;'>&#10007; UNVERIFIED</span>"
+            xai_html = f"""
+            <h3>Explainable AI (XAI) Model Evidence</h3>
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:12px; margin-bottom:12px; font-size:13px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <strong>Linear Decision Score:</strong> <code>{d_score:+.4f}</code> &bull; 
+                    <strong>Base Intercept:</strong> <code>{intercept:+.4f}</code>
+                </div>
+                <div>{math_badge}</div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 220px;">Feature Token</th>
+                        <th style="width: 130px;">Model Weight (w)</th>
+                        <th style="width: 110px;">TF-IDF (x)</th>
+                        <th>Decision Contribution (w &times; x)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {feat_table_body}
+                </tbody>
+            </table>
+            """
+
         return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
+
     <meta charset="UTF-8">
     <title>Phishing Incident Report - {inc_id}</title>
     <style>
@@ -125,7 +183,10 @@ class ReportGenerator:
         <h3>Executive Threat Summary</h3>
         <p style="background:#f1f5f9; padding:15px; border-radius:6px; font-size:14px; line-height:1.6; color:#334155;">{summary}</p>
 
+        {xai_html}
+
         <h3>Email Message Headers</h3>
+
         <table>
             <tr><th style="width: 140px;">Sender (From)</th><td>{email_info.get('sender', 'N/A')}</td></tr>
             <tr><th>Display Name</th><td>{email_info.get('display_name', 'N/A')}</td></tr>

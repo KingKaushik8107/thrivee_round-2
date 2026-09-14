@@ -4,9 +4,13 @@ import { submitAnalystFeedback } from '../services/api';
 
 interface FeedbackControlsProps {
   incidentId: string;
+  onFeedbackSubmitted?: () => void;
 }
 
-export const FeedbackControls: React.FC<FeedbackControlsProps> = ({ incidentId }) => {
+export const FeedbackControls: React.FC<FeedbackControlsProps> = ({
+  incidentId,
+  onFeedbackSubmitted
+}) => {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -15,6 +19,9 @@ export const FeedbackControls: React.FC<FeedbackControlsProps> = ({ incidentId }
     try {
       await submitAnalystFeedback(incidentId, feedbackType, 'SOC Analyst', '');
       setSubmitted(true);
+      if (onFeedbackSubmitted) {
+        onFeedbackSubmitted();
+      }
       setTimeout(() => setSubmitted(false), 3000);
     } catch (e) {
       console.error('Feedback submission error:', e);

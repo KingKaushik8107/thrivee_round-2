@@ -334,25 +334,49 @@ The PhishX Phishing Investigation & SOC Response Platform is pre-configured for 
 
 Once deployed, verify your live Vercel URL using `curl` or browser:
 
+* **Production SOC Console**: [https://phisdetect-tau.vercel.app](https://phisdetect-tau.vercel.app/)
+* **Production API Base**: [https://phisdetect-tau.vercel.app/api](https://phisdetect-tau.vercel.app/api)
+
 ```bash
 # 1. Test Health Endpoint
-curl https://<your-project>.vercel.app/api/health
+curl https://phisdetect-tau.vercel.app/api/health
 
 # 2. Test OpenAPI Interactive Swagger Docs
-https://<your-project>.vercel.app/api/docs
+https://phisdetect-tau.vercel.app/api/docs
 
 # 3. Test Live Phishing Analysis
-curl -X POST https://<your-project>.vercel.app/api/analyze \
+curl -X POST https://phisdetect-tau.vercel.app/api/analyze \
   -H "Content-Type: application/json" \
   -d '{"sender":"security@paypa1-login.com","subject":"Account Alert","body":"Verify: http://paypa1-login.com/verify"}'
 ```
 
 ---
 
+## 🧩 PhishX Chrome Extension (Gmail Protection)
+
+The extension injects in-page AI threat analysis, XAI feature explanations, and safe link inspection directly inside Gmail.
+
+### Build & Load Extension
+```bash
+# 1. Build Extension for Production (connected to https://phisdetect-tau.vercel.app/api)
+npm run build:extension
+
+# 2. Run Extension Unit Test Suite (33/33 Tests)
+npm run test:extension
+```
+
+### Installation
+1. Open Google Chrome and navigate to `chrome://extensions/`.
+2. Enable **Developer mode** (top right toggle).
+3. Click **Load unpacked** and select the `extension/dist` directory.
+4. Open Gmail (`https://mail.google.com`) and open any email to see real-time PhishX analysis and SOC deep linking.
+
+---
+
 ## 👥 Hackathon Team & PhishX Solution
 
 * **Project**: PhishX — AI-Powered Phishing Investigation & SOC Response Platform
-* **Architecture**: Modular Python FastAPI Backend + React 19 SOC Frontend + scikit-learn ML Pipeline + ReportLab PDF Engine + SQLite/PostgreSQL Database
+* **Architecture**: Modular Python FastAPI Backend + React 19 SOC Frontend + scikit-learn ML Pipeline + ReportLab PDF Engine + SQLite/PostgreSQL Database + Chrome Extension
 * **Status**: Complete Production-Ready Prototype & Verified Test Suite
 
 

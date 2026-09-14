@@ -52,10 +52,10 @@ class Settings(BaseModel):
     # CORS: Configurable list via environment variable (comma-separated string)
     CORS_ORIGINS_RAW: str = os.getenv("CORS_ORIGINS", "")
     
-    # Regex matching local, LAN, and Vercel cloud domains
+    # Regex matching local, LAN, Vercel cloud domains, and Chrome Extension origins
     CORS_ORIGIN_REGEX: str = os.getenv(
         "CORS_ORIGIN_REGEX",
-        r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.\d{1,3}\.\d{1,3}\.\d{1,3}|.*\.vercel\.app)(:\d+)?$"
+        r"^(https?://(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.\d{1,3}\.\d{1,3}\.\d{1,3}|.*\.vercel\.app)(:\d+)?|chrome-extension://[a-z]+)$"
     )
 
     def get_cors_origins(self) -> List[str]:
@@ -67,7 +67,8 @@ class Settings(BaseModel):
             "http://localhost:3000",
             "http://127.0.0.1:3000",
             "http://localhost:8000",
-            "http://127.0.0.1:8000"
+            "http://127.0.0.1:8000",
+            "https://phisdetect-tau.vercel.app"
         ]
 
 settings = Settings()

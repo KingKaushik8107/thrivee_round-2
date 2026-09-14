@@ -48,8 +48,10 @@ export const AIAnalystChat: React.FC<AIAnalystChatProps> = ({ incident }) => {
       });
 
       setMessages(prev => [...prev, { role: 'assistant', content: res.answer }]);
-    } catch (e) {
+    } catch (err) {
+      console.error('AI Analyst chat error:', err);
       setMessages(prev => [
+
         ...prev,
         {
           role: 'assistant',

@@ -20,3 +20,16 @@ def get_db():
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    # Ensure status column exists in analysis_results for SQLite
+    try:
+        with engine.connect() as conn:
+            from sqlalchemy import text
+            result = conn.execute(text("PRAGMA table_info(analysis_results);")).fetchall()
+            columns = [row[1] for row in result]
+            if columns and "status" not in columns:
+                conn.execute(text("ALTER TABLE analysis_results ADD COLUMN status VARCHAR(50) DEFAULT 'new';"))
+                conn.commit()
+    except Exception as e:
+        # If not SQLite or table doesn't exist yet, create_all handles it
+        pass
+

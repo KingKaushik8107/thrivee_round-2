@@ -1,6 +1,9 @@
 import axios from 'axios';
 import type {
   IncidentAnalysis,
+  IncidentStatus,
+  AnalystNote,
+  TimelineEvent,
   CampaignSummary,
   CampaignDetail,
   DashboardStats,
@@ -112,6 +115,50 @@ export const submitAnalystFeedback = async (
     analyst_name: analystName,
     notes,
   });
+  return response.data;
+};
+
+export const updateIncidentStatus = async (
+  incidentId: string,
+  status: IncidentStatus,
+  analystName: string = 'SOC Analyst',
+  reason: string = ''
+): Promise<{ status: string; incident_id: string; old_status: string; new_status: IncidentStatus; message: string }> => {
+  const response = await api.patch(`/incidents/${incidentId}/status`, {
+    status,
+    analyst_name: analystName,
+    reason,
+  });
+  return response.data;
+};
+
+export const getIncidentNotes = async (incidentId: string): Promise<AnalystNote[]> => {
+  const response = await api.get<AnalystNote[]>(`/incidents/${incidentId}/notes`);
+  return response.data;
+};
+
+export const addIncidentNote = async (
+  incidentId: string,
+  noteText: string,
+  analystName: string = 'SOC Analyst'
+): Promise<AnalystNote> => {
+  const response = await api.post<AnalystNote>(`/incidents/${incidentId}/notes`, {
+    note_text: noteText,
+    analyst_name: analystName,
+  });
+  return response.data;
+};
+
+export const deleteIncidentNote = async (
+  incidentId: string,
+  noteId: string
+): Promise<{ status: string; message: string; incident_id: string; note_id: string }> => {
+  const response = await api.delete(`/incidents/${incidentId}/notes/${noteId}`);
+  return response.data;
+};
+
+export const getIncidentTimeline = async (incidentId: string): Promise<TimelineEvent[]> => {
+  const response = await api.get<TimelineEvent[]>(`/incidents/${incidentId}/timeline`);
   return response.data;
 };
 

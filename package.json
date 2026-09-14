@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:extension": "vite build --config extension/vite.config.ts",
+    "test:extension": "npx vite-node extension/tests/run_all_tests.js",
     "lint": "oxlint",
     "preview": "vite preview"
   },

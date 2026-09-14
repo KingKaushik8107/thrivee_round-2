@@ -20,6 +20,12 @@ import { ActionPlaybook } from '../components/ActionPlaybook';
 import { FeedbackControls } from '../components/FeedbackControls';
 import { ReportModal } from '../components/ReportModal';
 import { DemoSelector } from '../components/DemoSelector';
+import { XAIAnalysisPanel } from '../components/analysis/XAIAnalysisPanel';
+import { SOCIncidentHeader } from '../components/analysis/SOCIncidentHeader';
+import { AnalystNotesPanel } from '../components/analysis/AnalystNotesPanel';
+import { InvestigationTimeline } from '../components/analysis/InvestigationTimeline';
+
+
 
 interface InvestigationPageProps {
   initialIncidentId?: string | null;
@@ -40,6 +46,7 @@ URL: http://paypa1-login.com/verify`);
   const [analysis, setAnalysis] = useState<IncidentAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [timelineRefreshTrigger, setTimelineRefreshTrigger] = useState(0);
 
   // Load initial incident if passed via props
   useEffect(() => {
@@ -189,6 +196,12 @@ ${scenario.body}${scenario.urls && scenario.urls.length > 0 ? `\nURL: ${scenario
       {/* 3. Analysis Results View */}
       {analysis && (
         <div className="space-y-6">
+          {/* Phase 8: SOC Incident Header */}
+          <SOCIncidentHeader
+            analysis={analysis}
+            onStatusUpdated={() => setTimelineRefreshTrigger((n) => n + 1)}
+          />
+
           {/* Top Bar: Risk Gauge + Report Trigger */}
           <div className="flex flex-col gap-4">
             <RiskGauge
@@ -233,6 +246,24 @@ ${scenario.body}${scenario.urls && scenario.urls.length > 0 ? `\nURL: ${scenario
             )}
           </div>
 
+          {/* Dedicated Explainable AI (XAI) Investigation Suite */}
+          <XAIAnalysisPanel analysis={analysis} />
+
+          {/* Phase 8: SOC Case Management Row (Notes & Timeline) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <AnalystNotesPanel
+              incidentId={analysis.incident_id}
+              initialNotes={analysis.notes || []}
+              onNoteAdded={() => setTimelineRefreshTrigger((n) => n + 1)}
+              onNoteDeleted={() => setTimelineRefreshTrigger((n) => n + 1)}
+            />
+            <InvestigationTimeline
+              incidentId={analysis.incident_id}
+              initialTimeline={analysis.timeline || []}
+              refreshTrigger={timelineRefreshTrigger}
+            />
+          </div>
+
           {/* Main 2-Column Forensic View */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Column: Interactive Original Email & Highlights */}
@@ -267,7 +298,10 @@ ${scenario.body}${scenario.urls && scenario.urls.length > 0 ? `\nURL: ${scenario
             <AIAnalystChat incident={analysis} />
             <div className="space-y-6 flex flex-col justify-between">
               <ActionPlaybook recommendations={analysis.recommendations} />
-              <FeedbackControls incidentId={analysis.incident_id} />
+              <FeedbackControls
+                incidentId={analysis.incident_id}
+                onFeedbackSubmitted={() => setTimelineRefreshTrigger((n) => n + 1)}
+              />
             </div>
           </div>
 

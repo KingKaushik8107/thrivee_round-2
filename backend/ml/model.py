@@ -60,6 +60,19 @@ class PhishingClassifier:
         X_vec = self.vectorizer.transform(X_texts)
         return self.classifier.predict(X_vec)
 
+    def explain_instance(self, text: str, top_k: int = 10) -> Dict[str, Any]:
+        """
+        Computes exact local feature attribution (XAI) for a single preprocessed text instance.
+        Calculates contribution_i = coef_i * tfidf_i for all active features.
+        """
+        from backend.ml.xai import LocalFeatureExplainer
+        return LocalFeatureExplainer.explain(
+            vectorizer=self.vectorizer,
+            classifier=self.classifier,
+            text=text,
+            top_k=top_k
+        )
+
     def save(self, model_dir: str):
         os.makedirs(model_dir, exist_ok=True)
         model_path = os.path.join(model_dir, "phishing_model.joblib")

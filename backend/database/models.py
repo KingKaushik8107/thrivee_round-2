@@ -45,6 +45,7 @@ class AnalysisResult(Base):
     verdict = Column(String(50), nullable=False)  # critical_phishing, phishing, suspicious, legitimate
     risk_score = Column(Float, nullable=False)     # 0.0 - 100.0
     ml_probability = Column(Float, nullable=False) # 0.0 - 1.0
+    status = Column(String(50), default="new")    # new, investigating, confirmed_threat, false_positive, resolved
     attack_type = Column(String(100), default="generic_phishing")
     attack_type_confidence = Column(Float, default=0.8)
     target_brand = Column(String(100), nullable=True)
@@ -60,6 +61,9 @@ class AnalysisResult(Base):
     risk_breakdown = relationship("RiskBreakdownRecord", back_populates="analysis", uselist=False, cascade="all, delete-orphan")
     threat_intel = relationship("ThreatIntelRecord", back_populates="analysis", cascade="all, delete-orphan")
     reports = relationship("IncidentReportRecord", back_populates="analysis", cascade="all, delete-orphan")
+    analyst_notes = relationship("AnalystNoteRecord", back_populates="analysis", cascade="all, delete-orphan")
+    timeline_events = relationship("IncidentTimelineEventRecord", back_populates="analysis", cascade="all, delete-orphan")
+
 
 
 class IndicatorRecord(Base):
@@ -201,3 +205,32 @@ class AnalystFeedbackRecord(Base):
 
     # Relationship
     email = relationship("EmailRecord", back_populates="feedbacks")
+
+
+class AnalystNoteRecord(Base):
+    __tablename__ = "analyst_notes"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    analysis_id = Column(String(36), ForeignKey("analysis_results.id"), nullable=False)
+    analyst_name = Column(String(100), default="SOC Analyst")
+    note_text = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=utc_now)
+
+    # Relationship
+    analysis = relationship("AnalysisResult", back_populates="analyst_notes")
+
+
+class IncidentTimelineEventRecord(Base):
+    __tablename__ = "incident_timeline"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    analysis_id = Column(String(36), ForeignKey("analysis_results.id"), nullable=False)
+    event_type = Column(String(50), nullable=False)  # created, ml_inference, forensic_rules, threat_intel, status_change, analyst_note, feedback, report_exported
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    actor = Column(String(100), default="System")
+    created_at = Column(DateTime, default=utc_now)
+
+    # Relationship
+    analysis = relationship("AnalysisResult", back_populates="timeline_events")
+
